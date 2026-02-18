@@ -1,15 +1,15 @@
 from fastmcp import FastMCP
 import os
-import sqlite3
+import aiosqlite
 
-DB_PATH= os.path.join(os.path.dirname(__file__), 'expenses.db')
+DB_PATH = os.path.join(os.path.dirname(__file__), 'expenses.db')
+CATEGORIES_PATH = os.path.join(os.path.dirname(__file__), 'categories.json')
 
-CATEGORIES_PATH=os.path.join(os.path.dirname(__file__), 'categories.json')
-mcp=FastMCP("ExpenseTracker")
+mcp = FastMCP("ExpenseTracker")
 
-def init_db():
-    with sqlite3.connect(DB_PATH) as c:
-        c.execute('''
+async def init_db():
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('''
             CREATE TABLE IF NOT EXISTS expenses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 amount REAL NOT NULL,
@@ -19,7 +19,7 @@ def init_db():
                 description TEXT DEFAULT ''
             )
         ''')
-        c.execute('''
+        await db.execute('''
             CREATE TABLE IF NOT EXISTS credits (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 amount REAL NOT NULL,
@@ -28,7 +28,7 @@ def init_db():
                 description TEXT DEFAULT ''
             )
         ''')
-        c.execute('''
+        await db.execute('''
             CREATE TABLE IF NOT EXISTS savings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 amount REAL NOT NULL,
@@ -37,32 +37,34 @@ def init_db():
                 description TEXT DEFAULT ''
             )
         ''')
-
-init_db()
+        await db.commit()
 
 @mcp.tool()
-def add_expense(amount, category, date, subcategory = "", description= ""):
-    with sqlite3.connect(DB_PATH) as c:
-        cur=c.execute('''
+async def add_expense(amount: float, category: str, date: str, subcategory: str = "", description: str = ""):
+    """Add a new expense entry."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute('''
             INSERT INTO expenses (amount, category, date, subcategory, description)
             VALUES (?, ?, ?, ?, ?)
         ''', (amount, category, date, subcategory, description))
-    return {"status": "success","id":cur.lastrowid}
+        await db.commit()
+        return {"status": "success", "id": cursor.lastrowid}
 
 @mcp.tool()
-def list_expenses(start_date,end_date):
-    "list expenses entries within an inclusive date range (YYYY-MM-DD)"
-    with sqlite3.connect(DB_PATH) as c:
-        cur=c.execute('''
-            SELECT id,date,amount,category,subcategory,description FROM expenses
+async def list_expenses(start_date: str, end_date: str):
+    """List expenses entries within an inclusive date range (YYYY-MM-DD)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute('''
+            SELECT id, date, amount, category, subcategory, description FROM expenses
             WHERE date BETWEEN ? AND ?
             ORDER BY id ASC
-        ''', (start_date,end_date) )
-        cols=[d[0] for d in cur.description]
-    return [dict(zip(cols,r)) for r in cur.fetchall()]
+        ''', (start_date, end_date)) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
 
 @mcp.tool()
-def edit_expense(id: int, amount=None, category=None, date=None, subcategory=None, description=None):
+async def edit_expense(id: int, amount=None, category=None, date=None, subcategory=None, description=None):
     """Edit an existing expense by ID. Only provided fields will be updated."""
     updates = []
     values = []
@@ -89,64 +91,159 @@ def edit_expense(id: int, amount=None, category=None, date=None, subcategory=Non
     values.append(id)
     query = f"UPDATE expenses SET {', '.join(updates)} WHERE id = ?"
     
-    with sqlite3.connect(DB_PATH) as c:
-        cur = c.execute(query, values)
-        if cur.rowcount == 0:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(query, values)
+        await db.commit()
+        if cursor.rowcount == 0:
             return {"status": "error", "message": f"Expense with id {id} not found"}
     return {"status": "success", "id": id, "updated_fields": len(updates)}
 
 @mcp.tool()
-def delete_expense(id: int):
+async def delete_expense(id: int):
     """Delete an expense by ID."""
-    with sqlite3.connect(DB_PATH) as c:
-        cur = c.execute('DELETE FROM expenses WHERE id = ?', (id,))
-        if cur.rowcount == 0:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute('DELETE FROM expenses WHERE id = ?', (id,))
+        await db.commit()
+        if cursor.rowcount == 0:
             return {"status": "error", "message": f"Expense with id {id} not found"}
     return {"status": "success", "message": f"Expense {id} deleted"}
 
 @mcp.tool()
-def add_credit(amount: float, source: str, date: str, description: str = ""):
+async def add_credit(amount: float, source: str, date: str, description: str = ""):
     """Add a credit/income entry."""
-    with sqlite3.connect(DB_PATH) as c:
-        cur = c.execute('''
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute('''
             INSERT INTO credits (amount, source, date, description)
             VALUES (?, ?, ?, ?)
         ''', (amount, source, date, description))
-    return {"status": "success", "id": cur.lastrowid}
+        await db.commit()
+        return {"status": "success", "id": cursor.lastrowid}
 
 @mcp.tool()
-def list_credits():
+async def list_credits():
     """List all credit/income entries."""
-    with sqlite3.connect(DB_PATH) as c:
-        cur = c.execute('SELECT id, date, amount, source, description FROM credits ORDER BY id ASC')
-        cols = [d[0] for d in cur.description]
-    return [dict(zip(cols, r)) for r in cur.fetchall()]
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute('SELECT id, date, amount, source, description FROM credits ORDER BY id ASC') as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
 
 @mcp.tool()
-def add_saving(amount: float, goal: str, date: str, description: str = ""):
+async def edit_credit(id: int, amount=None, source=None, date=None, description=None):
+    """Edit an existing credit by ID. Only provided fields will be updated."""
+    updates = []
+    values = []
+    
+    if amount is not None:
+        updates.append("amount = ?")
+        values.append(amount)
+    if source is not None:
+        updates.append("source = ?")
+        values.append(source)
+    if date is not None:
+        updates.append("date = ?")
+        values.append(date)
+    if description is not None:
+        updates.append("description = ?")
+        values.append(description)
+    
+    if not updates:
+        return {"status": "error", "message": "No fields to update"}
+    
+    values.append(id)
+    query = f"UPDATE credits SET {', '.join(updates)} WHERE id = ?"
+    
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(query, values)
+        await db.commit()
+        if cursor.rowcount == 0:
+            return {"status": "error", "message": f"Credit with id {id} not found"}
+    return {"status": "success", "id": id, "updated_fields": len(updates)}
+
+@mcp.tool()
+async def delete_credit(id: int):
+    """Delete a credit by ID."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute('DELETE FROM credits WHERE id = ?', (id,))
+        await db.commit()
+        if cursor.rowcount == 0:
+            return {"status": "error", "message": f"Credit with id {id} not found"}
+    return {"status": "success", "message": f"Credit {id} deleted"}
+
+@mcp.tool()
+async def add_saving(amount: float, goal: str, date: str, description: str = ""):
     """Add a saving entry."""
-    with sqlite3.connect(DB_PATH) as c:
-        cur = c.execute('''
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute('''
             INSERT INTO savings (amount, goal, date, description)
             VALUES (?, ?, ?, ?)
         ''', (amount, goal, date, description))
-    return {"status": "success", "id": cur.lastrowid}
+        await db.commit()
+        return {"status": "success", "id": cursor.lastrowid}
 
 @mcp.tool()
-def list_savings():
+async def list_savings():
     """List all saving entries."""
-    with sqlite3.connect(DB_PATH) as c:
-        cur = c.execute('SELECT id, date, amount, goal, description FROM savings ORDER BY id ASC')
-        cols = [d[0] for d in cur.description]
-    return [dict(zip(cols, r)) for r in cur.fetchall()]
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute('SELECT id, date, amount, goal, description FROM savings ORDER BY id ASC') as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
 
 @mcp.tool()
-def get_summary():
+async def edit_saving(id: int, amount=None, goal=None, date=None, description=None):
+    """Edit an existing saving by ID. Only provided fields will be updated."""
+    updates = []
+    values = []
+    
+    if amount is not None:
+        updates.append("amount = ?")
+        values.append(amount)
+    if goal is not None:
+        updates.append("goal = ?")
+        values.append(goal)
+    if date is not None:
+        updates.append("date = ?")
+        values.append(date)
+    if description is not None:
+        updates.append("description = ?")
+        values.append(description)
+    
+    if not updates:
+        return {"status": "error", "message": "No fields to update"}
+    
+    values.append(id)
+    query = f"UPDATE savings SET {', '.join(updates)} WHERE id = ?"
+    
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(query, values)
+        await db.commit()
+        if cursor.rowcount == 0:
+            return {"status": "error", "message": f"Saving with id {id} not found"}
+    return {"status": "success", "id": id, "updated_fields": len(updates)}
+
+@mcp.tool()
+async def delete_saving(id: int):
+    """Delete a saving by ID."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute('DELETE FROM savings WHERE id = ?', (id,))
+        await db.commit()
+        if cursor.rowcount == 0:
+            return {"status": "error", "message": f"Saving with id {id} not found"}
+    return {"status": "success", "message": f"Saving {id} deleted"}
+
+@mcp.tool()
+async def get_summary():
     """Get a financial summary with total expenses, credits, and savings."""
-    with sqlite3.connect(DB_PATH) as c:
-        total_expenses = c.execute('SELECT SUM(amount) FROM expenses').fetchone()[0] or 0
-        total_credits = c.execute('SELECT SUM(amount) FROM credits').fetchone()[0] or 0
-        total_savings = c.execute('SELECT SUM(amount) FROM savings').fetchone()[0] or 0
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute('SELECT SUM(amount) FROM expenses')
+        total_expenses = (await cursor.fetchone())[0] or 0
+        
+        cursor = await db.execute('SELECT SUM(amount) FROM credits')
+        total_credits = (await cursor.fetchone())[0] or 0
+        
+        cursor = await db.execute('SELECT SUM(amount) FROM savings')
+        total_savings = (await cursor.fetchone())[0] or 0
     
     balance = total_credits - total_expenses - total_savings
     
@@ -157,12 +254,13 @@ def get_summary():
         "balance": balance
     }
 
-@mcp.resource("expense://categories",mime_type="application/json")
-def categories():
-    """Read fresh each time so you can edit the file without restarting"""
-    with open(CATEGORIES_PATH,"r",encoding="utf-8") as f:
-        return f.read()
+@mcp.resource("expense://categories", mime_type="application/json")
+async def categories():
+    """Read fresh each time so you can edit the file without restarting."""
+    with open(CATEGORIES_PATH, "r", encoding="utf-8") as f:
         return f.read()
 
-if __name__=="__main__":    
-    mcp.run(transport="http",host="0.0.0.0",port=8000)
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(init_db())
+    mcp.run(transport="http", host="0.0.0.0", port=8000)
