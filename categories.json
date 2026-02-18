@@ -1,0 +1,217 @@
+{
+  "categories": {
+    "food": {
+      "subcategories": [
+        "groceries",
+        "restaurants",
+        "fast_food",
+        "coffee_tea",
+        "delivery",
+        "snacks",
+        "alcohol",
+        "bakery"
+      ]
+    },
+    "transport": {
+      "subcategories": [
+        "fuel",
+        "public_transport",
+        "taxi_rideshare",
+        "parking",
+        "tolls",
+        "vehicle_maintenance",
+        "vehicle_insurance",
+        "car_wash"
+      ]
+    },
+    "housing": {
+      "subcategories": [
+        "rent",
+        "mortgage",
+        "property_tax",
+        "home_insurance",
+        "hoa_fees",
+        "security_deposit"
+      ]
+    },
+    "utilities": {
+      "subcategories": [
+        "electricity",
+        "water",
+        "gas",
+        "internet",
+        "phone",
+        "cable_tv",
+        "trash_recycling"
+      ]
+    },
+    "health": {
+      "subcategories": [
+        "doctor_visits",
+        "dentist",
+        "pharmacy",
+        "hospital",
+        "health_insurance",
+        "gym_fitness",
+        "therapy",
+        "vision_care",
+        "medical_equipment"
+      ]
+    },
+    "education": {
+      "subcategories": [
+        "tuition",
+        "books",
+        "school_supplies",
+        "courses",
+        "certifications",
+        "tutoring",
+        "student_loans"
+      ]
+    },
+    "family": {
+      "subcategories": [
+        "childcare",
+        "diapers",
+        "baby_supplies",
+        "kids_activities",
+        "allowance",
+        "school_fees",
+        "family_support"
+      ]
+    },
+    "investment": {
+      "subcategories": [
+        "stocks",
+        "bonds",
+        "mutual_funds",
+        "crypto",
+        "real_estate",
+        "retirement_401k",
+        "ira",
+        "emergency_fund"
+      ]
+    },
+    "taxes": {
+      "subcategories": [
+        "income_tax",
+        "property_tax",
+        "sales_tax",
+        "tax_preparation",
+        "penalties"
+      ]
+    },
+    "pet": {
+      "subcategories": [
+        "pet_food",
+        "veterinary",
+        "pet_insurance",
+        "grooming",
+        "toys",
+        "supplies",
+        "boarding"
+      ]
+    },
+    "home": {
+      "subcategories": [
+        "furniture",
+        "appliances",
+        "repairs",
+        "maintenance",
+        "cleaning_supplies",
+        "home_improvement",
+        "decor",
+        "garden_lawn"
+      ]
+    },
+    "travel": {
+      "subcategories": [
+        "flights",
+        "hotels",
+        "vacation_rentals",
+        "tours",
+        "travel_insurance",
+        "souvenirs",
+        "visa_passport"
+      ]
+    },
+    "business": {
+      "subcategories": [
+        "office_supplies",
+        "software",
+        "equipment",
+        "marketing",
+        "professional_services",
+        "business_travel",
+        "licenses_permits"
+      ]
+    },
+    "entertainment": {
+      "subcategories": [
+        "movies",
+        "concerts",
+        "sports_events",
+        "streaming_services",
+        "games",
+        "hobbies",
+        "books_magazines",
+        "music"
+      ]
+    },
+    "shopping": {
+      "subcategories": [
+        "clothing",
+        "shoes",
+        "accessories",
+        "electronics",
+        "online_shopping",
+        "department_stores",
+        "specialty_stores"
+      ]
+    },
+    "subscription": {
+      "subcategories": [
+        "streaming_video",
+        "streaming_music",
+        "cloud_storage",
+        "software_saas",
+        "news_media",
+        "meal_kits",
+        "membership_clubs"
+      ]
+    },
+    "personal_care": {
+      "subcategories": [
+        "haircut",
+        "salon_spa",
+        "cosmetics",
+        "skincare",
+        "toiletries",
+        "laundry",
+        "dry_cleaning"
+      ]
+    },
+    "gift_donations": {
+      "subcategories": [
+        "birthday_gifts",
+        "holiday_gifts",
+        "wedding_gifts",
+        "charity",
+        "religious_donations",
+        "crowdfunding",
+        "tips"
+      ]
+    },
+    "finance_fees": {
+      "subcategories": [
+        "bank_fees",
+        "atm_fees",
+        "credit_card_fees",
+        "loan_interest",
+        "late_fees",
+        "foreign_transaction",
+        "overdraft_fees"
+      ]
+    }
+  }
+}
